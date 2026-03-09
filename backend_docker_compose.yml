@@ -1,0 +1,38 @@
+services:
+  # 主应用服务
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.tencent
+    image: restart-life-api:latest
+    container_name: restart-life-api
+    ports:
+      - "8081:8080"
+      - "8443:8443"
+    environment:
+      - GIN_MODE=debug
+    volumes:
+      - ../template:/app/template
+      - ../logs:/app/logs
+      - ../configs:/app/configs:ro
+      - /etc/nginx:/etc/nginx:ro
+    networks:
+      - restart-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "-O", "/dev/null", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    env_file:
+      - ${ENV_FILE}
+    command: sh -c "env && ./main"
+
+networks:
+  restart-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.19.0.0/16
+          gateway: 172.19.0.1
